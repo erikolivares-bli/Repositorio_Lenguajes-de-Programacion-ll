@@ -1,0 +1,56 @@
+-- Crear BD
+CREATE DATABASE BD_UNI;
+GO
+USE BD_UNI;
+GO
+
+-- 1. Tabla CENTRO (Catálogo)
+CREATE TABLE CENTRO (
+    NumeroCentro CHAR(6) PRIMARY KEY,
+    NombreCentro VARCHAR(100) NOT NULL,
+    Ciudad VARCHAR(50) NOT NULL
+);
+
+-- 2. Tabla EMPLEADO (Tabla Padre)
+CREATE TABLE EMPLEADO (
+    NumeroEmpleado INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    ApellidoPaterno VARCHAR(50) NOT NULL,
+    ApellidoMaterno VARCHAR(50) NOT NULL,
+    FechaNacimiento DATE NOT NULL,
+    RFC VARCHAR(13) NOT NULL, -- Se calcula: 2 ApPat + 1 ApMat + 1 Nombre + AAMMDD + XXX
+    Puesto VARCHAR(50) NOT NULL,
+    DescripcionPuesto VARCHAR(100) NOT NULL,
+    CentroTrabajo CHAR(6) NOT NULL,
+    EsDirectivo BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_Empleado_Centro FOREIGN KEY (CentroTrabajo) REFERENCES CENTRO(NumeroCentro)
+);
+
+-- 3. Tabla DIRECTIVO (Tabla Hija - Herencia)
+CREATE TABLE DIRECTIVO (
+    NumeroEmpleado INT PRIMARY KEY,
+    NumeroCentroSupervisa CHAR(6) NOT NULL,
+    PrestacionCombustible BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_Directivo_Empleado FOREIGN KEY (NumeroEmpleado) REFERENCES EMPLEADO(NumeroEmpleado),
+    CONSTRAINT FK_Directivo_CentroSupervisa FOREIGN KEY (NumeroCentroSupervisa) REFERENCES CENTRO(NumeroCentro)
+);
+
+-- Insertar Catálogo de puestos (de tu imagen 1)
+INSERT INTO CENTRO VALUES
+('000201', 'Tiendas Ángel Flores Ropa', 'Culiacán'),
+('000202', 'Tiendas Ángel Flores Muebles', 'Culiacán'),
+('000203', 'Tiendas Ángel Flores Cajas', 'Culiacán'),
+('049001', 'La Primavera Ropa', 'Culiacán'),
+('049002', 'La Primavera Muebles', 'Culiacán'),
+('049003', 'La Primavera Cajas', 'Culiacán');
+
+-- Insertar 5 Empleados (2 del ejemplo + 3 inventados)
+INSERT INTO EMPLEADO (Nombre, ApellidoPaterno, ApellidoMaterno, FechaNacimiento, RFC, Puesto, DescripcionPuesto, CentroTrabajo, EsDirectivo) VALUES
+('Jesus', 'Vega', 'Castro', '1988-03-26', 'VECJ880326XXX', 'Vendedor', 'Vendedor de piso', '000201', 0),
+('Jose', 'Lopez', 'Perez', '1980-01-01', 'LOPJ800101XXX', 'Gerente', 'Gerente de sucursal', '049003', 1),
+('Maria', 'Garcia', 'Lopez', '1995-05-15', 'GALM950515XXX', 'Cajera', 'Cajera principal', '000203', 0),
+('Carlos', 'Martinez', 'Soto', '1975-11-20', 'MASC751120XXX', 'Director Regional', 'Director de zona norte', '000201', 1),
+('Ana', 'Hernandez', 'Ruiz', '1990-08-10', 'HERA900810XXX', 'Vendedora', 'Vendedora de muebles', '000202', 0);
+
+-- Insertar datos de Directivos
+INSERT INTO DIRECTIVO VALUES (2, '049003', 1), (4, '000201', 1);
