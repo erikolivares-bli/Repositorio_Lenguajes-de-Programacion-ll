@@ -1,0 +1,85 @@
+#include <iostream>
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
+
+int main() {
+	SQLHENV henv;
+	SQLHDBC hdbc;
+	SQLHSTMT hstmt;
+	SQLRETURN ret;
+
+	SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
+	SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+	SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+
+	// CONEXION DIRECTA A TU BASE BD_UNI DE LA ACTIVIDAD 1    
+ret = SQLConnect(hdbc, (SQLCHAR*)"Conexion_A2", SQL_NTS, NULL, 0, NULL, 0);
+	if (SQL_SUCCEEDED(ret)) {
+		std::cout << "CONECTADO A BD_UNI EXITOSAMENTE!" << std::endl;
+		SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+
+		// EJEMPLO CON TABLA CENTRO
+		std::cout << "\n--- Datos de tabla CENTRO ---" << std::endl;
+		SQLExecDirect(hstmt, (SQLCHAR*)"SELECT * FROM CENTRO", SQL_NTS);
+		
+		std::cout << "Consulta ejecutada correctamente en BD_UNI" << std::endl;
+
+		SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+		SQLDisconnect(hdbc);
+		std::cout << "\nConexion cerrada." << std::endl;
+	}
+	else {
+		std::cout << "FALLO LA CONEXION" << std::endl;
+	}
+	
+	SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+	SQLFreeHandle(SQL_HANDLE_ENV, henv);
+	system("pause");
+	return 0;
+}
+
+
+
+
+CODIGO PARA IMPRIMIR EL ENCABEZADO DE LAS TABLAS:
+
+
+#include <iostream>
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
+#pragma comment(lib, "odbc32.lib")
+
+int main() {
+
+	SQLHENV henv;
+	SQLHDBC hdbc;
+	SQLHSTMT hstmt;
+	SQLRETURN ret;
+
+	SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
+	SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+	SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+
+	ret = SQLConnectA(hdbc, (SQLCHAR*)"Conexion_A2", SQL_NTS, NULL, 0, NULL, 0);
+
+	if (SQL_SUCCEEDED(ret)) {
+		std::cout << "CONECTADO A BD_UNI EXITOSAMENTE!" << std::endl;
+		SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+
+		// PASO 6 - SOLO ENCABEZADOS        
+		std::cout << "\n--- PASO 6: Encabezados de CENTRO ---" << std::endl;
+		SQLExecDirectA(hstmt, (SQLCHAR*)"SELECT NumeroCentro, NombreCentro, Ciudad FROM CENTRO", SQL_NTS);
+
+		std::cout << "Columnas: NumeroCentro | NombreCentro | Ciudad" << std::endl;
+		SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+		SQLDisconnect(hdbc);
+		std::cout << "\nConexion cerrada." << std::endl;
+	}
+	
+	SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+	SQLFreeHandle(SQL_HANDLE_ENV, henv);
+	system("pause");
+	return 0;
+}
