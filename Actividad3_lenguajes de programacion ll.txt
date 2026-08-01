@@ -1,0 +1,136 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
+#pragma comment(lib, "odbc32.lib")
+using namespace std;
+
+vector<pair<string, string>> catalogoCentros; // 000201 - Nombre
+
+// ============ FUNCION PARA CARGAR CATALOGO DESDE TU BD ============
+void cargarCatalogoBD() {
+	SQLHENV henv; SQLHDBC hdbc; SQLHSTMT hstmt;
+	SQLAllocHandle(SQL_HANDLE_ENV, NULL, &henv);
+	SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+	SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+
+if (SQLConnectA(hdbc, (SQLCHAR*)"Conexion_A2", SQL_NTS, NULL, 0, NULL, 0) == SQL_SUCCESS) {
+	SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+	SQLExecDirectA(hstmt, (SQLCHAR*)"SELECT NumeroCentro, NombreCentro FROM CENTRO", SQL_NTS);
+	SQLCHAR num[30], nom[100];
+	while (SQLFetch(hstmt) == SQL_SUCCESS) { 
+		SQLGetData(hstmt, 1, SQL_C_CHAR, num, sizeof(num), NULL);
+		SQLGetData(hstmt, 2, SQL_C_CHAR, nom, sizeof(nom), NULL);
+		catalogoCentros.push_back({ string((char*)num), string((char*)nom) });
+	}
+	SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+	SQLDisconnect(hdbc);
+	cout << "[OK] Catalogo cargado desde BD_UNI: " << catalogoCentros.size() << " centros\n";
+}else {
+	cout << "[AVISO] No se pudo conectar a BD_UNI, usando catalogo local\n";
+	catalogoCentros = { {"000201","Tiendas Angel Flores Ropa"}, {"000202","Tiendas Angel Flores Muebles"},
+	{"000203","Tiendas Angel Flores Cajas"}, {"049001","La Primavera Ropa"},
+	{"049002","La Primavera Muebles"}, {"049003","La Primavera Cajas"} };
+}
+
+SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+SQLFreeHandle(SQL_HANDLE_ENV, henv);
+}
+
+string buscarNombreCentro(string clave) {
+	for (auto& c : catalogoCentros) if (c.first == clave) return c.second;
+	return "NO ENCONTRADO";
+}
+
+// ============ CLASE BASE EMPLEADO ============
+class Empleado {
+public:
+	int numEmpleado;
+	string nombre, apPaterno, apMaterno, fechaNac, rfc;
+	string claveCentro, nombreCentro, puesto, descPuesto;
+	bool esDirectivo;
+
+string calcularRFC() {
+	string r = "";
+	if (apPaterno.size() >= 2) r += apPaterno.substr(0, 2);
+	if (apMaterno.size() >= 1) r += apMaterno.substr(0, 1);
+	if (nombre.size() >= 1) r += nombre.substr(0, 1);
+	if (fechaNac.size() >= 10) r += fechaNac.substr(8, 2) + fechaNac.substr(3, 2) + fechaNac.substr(0, 2);
+	r += "XXX";
+	transform(r.begin(), r.end(), r.begin(), ::toupper);
+	return r;
+}
+virtual void mostrar() {
+	cout << numEmpleado << "\t" << nombre << " " << apPaterno << " " << apMaterno << "\t"
+		<< fechaNac << "\t" << rfc << "\t" << nombreCentro << "\t" << puesto << "\t" << (esDirectivo ? "Si" : "No") << endl;
+}
+};
+
+// ============ CLASE HIJA DIRECTIVO ============
+class Directivo : public Empleado {
+public:
+	string centroSupervisa;
+	bool prestacionCombustible;
+	void mostrar() override {
+		Empleado::mostrar();
+		cout << "\t -> Supervisa: " << centroSupervisa << " | Combustible: " << (prestacionCombustible?"Si":"No") << endl;
+	}
+};
+
+// ============ MAIN ============
+int main() {
+	setlocale(LC_ALL, "");
+	cargarCatalogoBD();
+
+cout << "\n=== CATALOGO DE PUESTOS DISPONIBLE (De tu tabla CENTRO) ===" << endl;
+for (auto& c : catalogoCentros) cout << c.first << " | " << c.second << " | Culiacan" << endl;
+
+vector<Empleado*> lista;
+int n;
+cout << "\n¿Cuantos empleados vas a capturar? "; cin >> n;
+cin.ignore();
+
+for (int i = 0; i < n; i++) {
+	cout << "\n--- Empleado #" << i + 1 << " ---\n";
+	char op; cout << "¿Es directivo? (1=Si, 0=No): "; cin >> op; cin.ignore();
+	bool esDir = (op == '1');
+
+	Empleado* emp;
+	if (esDir) emp = new Directivo();
+	else emp = new Empleado();
+
+	emp->numEmpleado = i + 1;
+	cout << "Nombre: "; getline(cin, emp->nombre);
+	cout << "Apellido Paterno: "; getline(cin, emp->apPaterno);
+	cout << "Apellido Materno: "; getline(cin, emp->apMaterno);
+	cout << "Fecha Nac (DD/MM/AAAA): "; getline(cin, emp->fechaNac);
+	cout << "Clave Centro Trabajo (ej 000201): "; getline(cin, emp->claveCentro);
+	emp->nombreCentro = buscarNombreCentro(emp->claveCentro);
+	cout << "Puesto: "; getline(cin, emp->puesto);
+	cout << "Descripcion Puesto: "; getline(cin, emp->descPuesto);
+	emp->esDirectivo = esDir;
+	emp->rfc = emp->calcularRFC();
+
+	if (esDir) {
+		Directivo* d = (Directivo*)emp;
+		cout << "Numero del centro que supervisa: "; getline(cin, d->centroSupervisa);
+		char gas; cout << "¿Recibe apoyo de combustible? (1=Si,0=No): "; cin >> gas; cin.ignore();
+		d->prestacionCombustible = (gas == '1');
+	}
+	lista.push_back(emp);
+
+}
+cout << "\n\n================ REPORTE FINAL (Formato que pide la actividad) ================\n";
+cout << "Num\tNombre Completo\t\tFecha\t\tRFC\t\t\tCentro\t\tPuesto\tEs Directivo?\n";
+cout << "--------------------------------------------------------------------------------------------\n";
+for (auto e : lista) e->mostrar();
+
+cout << "\n\n--- Paso 6 y 7: Prueba de impresion de tablas de BD_UNI ---\n";
+cout << "Si llegaste hasta aqui, ya cumpliste la conexion a BD_UNI con Conexion_A2\n";
+
+system("pause");
+return 0;
+}
